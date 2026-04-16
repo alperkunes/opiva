@@ -422,6 +422,19 @@
       .att-note input{padding:7px 10px;font-size:13px;border-radius:8px;border:1px solid var(--line2);background:var(--bg);color:var(--muted)}
       .att-note input:focus{background:#fff;border-color:var(--acc2);color:var(--text)}
     }
+  
+    /* Kasa hareket listesi mobilde kart değil tablo/liste */
+    @media (max-width:520px){
+      #tab-cash .desktop-table{display:table!important}
+      #tab-cash .desktop-table-wrap{
+        display:block!important;
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+      }
+      #tab-cash table{min-width:980px}
+      #tab-cash .mobile-card-list{display:none!important}
+    }
+
   </style>
 </head>
 <body>
@@ -551,28 +564,54 @@
 
     <div id="tab-cash" class="card hidden">
       <div class="section-title">💵 Kasa</div>
-      <div class="grid grid-4" style="margin-bottom:12px">
-        <select id="cashType">
-          <option value="cikan">Kasa Çıkan</option>
-          <option value="giren">Kasa Giren</option>
-          <option value="narpos">NarPOS</option>
-          <option value="kk">KK</option>
-          <option value="kesinti">Kesinti</option>
-        </select>
-        <input id="cashAmount" type="number" step="0.01" placeholder="Tutar" />
-        <select id="cashPaymentMethod"></select>
-        <select id="cashDepartment" onchange="onCashDepartmentChange()"></select>
-        <select id="cashSupplier" class="hidden"></select>
-        <select id="cashEmployee" class="hidden"></select>
-        <input id="cashDesc" placeholder="Açıklama" />
+
+      <div class="card-inner" style="margin-bottom:12px">
+        <div class="grid grid-4" style="margin-bottom:12px">
+          <select id="cashType">
+            <option value="cikan">Kasa Çıkan</option>
+            <option value="giren">Kasa Giren</option>
+            <option value="narpos">NarPOS</option>
+            <option value="kk">KK</option>
+            <option value="kesinti">Kesinti</option>
+          </select>
+          <input id="cashAmount" type="number" step="0.01" placeholder="Tutar" />
+          <select id="cashPaymentMethod"></select>
+          <select id="cashDepartment" onchange="onCashDepartmentChange()"></select>
+          <select id="cashSupplier" class="hidden"></select>
+          <select id="cashEmployee" class="hidden"></select>
+          <input id="cashDesc" placeholder="Açıklama" />
+        </div>
+        <button class="btn-primary" style="min-width:160px" onclick="createCash()">+ Kasa Kaydı Ekle</button>
+        <div id="cashMsg" class="muted" style="margin-top:10px"></div>
       </div>
-      <button class="btn-primary" style="min-width:160px" onclick="createCash()">+ Kasa Kaydı Ekle</button>
-      <div id="cashMsg" class="muted" style="margin-top:10px"></div>
-      <table class="desktop-table" style="margin-top:12px">
-        <thead><tr><th>Tarih</th><th>Tip</th><th>Tutar</th><th>Ödeme Yöntemi</th><th>Departman</th><th>Bağlantı</th><th>Açıklama</th><th>İşlem</th></tr></thead>
-        <tbody id="cashTable"></tbody>
-      </table>
-      <div id="cashMobileList" class="mobile-card-list"></div>
+
+      <div class="card-inner">
+        <div class="row-between" style="margin-bottom:10px">
+          <div>
+            <b>Kasa Hareket Listesi</b>
+            <div class="muted">Tarih, tip, ödeme yöntemi, departman ve açıklamaya göre filtreleyebilirsin.</div>
+          </div>
+          <div class="badge" id="cashListCount">0 kayıt</div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom:12px">
+          <input id="cashFilterDateFrom" type="date" onchange="renderCash()" />
+          <input id="cashFilterDateTo" type="date" onchange="renderCash()" />
+          <select id="cashFilterType" onchange="renderCash()"></select>
+          <select id="cashFilterPayment" onchange="renderCash()"></select>
+          <select id="cashFilterDepartment" onchange="renderCash()"></select>
+          <input id="cashFilterText" placeholder="Açıklama / kişi / tedarikçi ara" oninput="renderCash()" />
+          <button onclick="resetCashFilters()">Filtreleri Temizle</button>
+        </div>
+
+        <div class="desktop-table-wrap">
+          <table class="desktop-table" style="margin-top:12px">
+            <thead><tr><th>Tarih</th><th>Tip</th><th>Tutar</th><th>Ödeme Yöntemi</th><th>Departman</th><th>Bağlantı</th><th>Açıklama</th><th>İşlem</th></tr></thead>
+            <tbody id="cashTable"></tbody>
+          </table>
+        </div>
+        <div id="cashMobileList" class="mobile-card-list"></div>
+      </div>
     </div>
 
     <div id="tab-employees" class="card hidden">
@@ -1705,16 +1744,98 @@ function onCashDepartmentChange(){
 }
 
 
+
+function renderCashFilters(){
+  const typeSel = byId('cashFilterType');
+  if(typeSel && !typeSel.dataset.ready){
+    typeSel.innerHTML = `
+      <option value="">Tüm Tipler</option>
+      <option value="cikan">Kasa Çıkan</option>
+      <option value="giren">Kasa Giren</option>
+      <option value="narpos">NarPOS</option>
+      <option value="kk">KK</option>
+      <option value="kesinti">Kesinti</option>
+    `;
+    typeSel.dataset.ready = '1';
+  }
+
+  const paySel = byId('cashFilterPayment');
+  if(paySel){
+    const current = paySel.value || '';
+    paySel.innerHTML = '<option value="">Tüm Ödeme Yöntemleri</option>';
+    state.paymentMethods.forEach(pm => {
+      const opt = document.createElement('option');
+      opt.value = pm.id;
+      opt.textContent = pm.name;
+      paySel.appendChild(opt);
+    });
+    paySel.value = current;
+  }
+
+  const depSel = byId('cashFilterDepartment');
+  if(depSel){
+    const current = depSel.value || '';
+    depSel.innerHTML = '<option value="">Tüm Departmanlar</option>';
+    state.departments.forEach(dep => {
+      const opt = document.createElement('option');
+      opt.value = dep.id;
+      opt.textContent = dep.name;
+      depSel.appendChild(opt);
+    });
+    depSel.value = current;
+  }
+}
+
+function filteredCashRows(){
+  const dateFrom = byId('cashFilterDateFrom')?.value || '';
+  const dateTo = byId('cashFilterDateTo')?.value || '';
+  const type = byId('cashFilterType')?.value || '';
+  const payment = byId('cashFilterPayment')?.value || '';
+  const department = byId('cashFilterDepartment')?.value || '';
+  const q = (byId('cashFilterText')?.value || '').trim().toLocaleLowerCase('tr-TR');
+
+  return state.cash.filter(x => {
+    const supplierName = x.supplier_id ? (state.suppliers.find(s => s.id === x.supplier_id)?.name || '') : '';
+    const employeeName = x.employee_id ? (state.employees.find(e => e.id === x.employee_id)?.full_name || '') : '';
+    const paymentName = x.payment_method_id ? (state.paymentMethods.find(pm => pm.id === x.payment_method_id)?.name || '') : '';
+    const departmentName = x.department_id ? (state.departments.find(dep => dep.id === x.department_id)?.name || '') : '';
+    const searchBlob = `${x.description || ''} ${supplierName} ${employeeName} ${paymentName} ${departmentName}`.toLocaleLowerCase('tr-TR');
+
+    if(dateFrom && x.tx_date < dateFrom) return false;
+    if(dateTo && x.tx_date > dateTo) return false;
+    if(type && x.type !== type) return false;
+    if(payment && x.payment_method_id !== payment) return false;
+    if(department && x.department_id !== department) return false;
+    if(q && !searchBlob.includes(q)) return false;
+    return true;
+  });
+}
+
+function resetCashFilters(){
+  ['cashFilterDateFrom','cashFilterDateTo','cashFilterText'].forEach(id => { if(byId(id)) byId(id).value = ''; });
+  ['cashFilterType','cashFilterPayment','cashFilterDepartment'].forEach(id => { if(byId(id)) byId(id).value = ''; });
+  renderCash();
+}
+
+
 function renderCash(){
+  renderCashFilters();
+
   const tbody = byId('cashTable');
   tbody.innerHTML = '';
 
-  if(!state.cash.length){
-    tbody.innerHTML = '<tr><td colspan="8" class="muted">Henüz kasa hareketi yok.</td></tr>';
+  const rows = filteredCashRows();
+
+  if(byId('cashListCount')){
+    byId('cashListCount').textContent = `${rows.length} kayıt`;
+  }
+
+  if(!rows.length){
+    tbody.innerHTML = '<tr><td colspan="8" class="muted">Filtreye uygun kasa hareketi yok.</td></tr>';
     return;
   }
 
-  state.cash.forEach(x => {
+  rows.forEach(x => {
     const tr = document.createElement('tr');
 
     const supplierName = x.supplier_id
@@ -1734,42 +1855,11 @@ function renderCash(){
       : '-';
 
     const linked = supplierName || employeeName || '-';
-    const actions = `${hasPermission('can_cash_edit') ? `<button onclick="openCashEdit('${x.id}')">Düzenle</button>` : ''} ${hasPermission('can_cash_delete') ? `<button onclick="deleteCash('${x.id}')">Sil</button>` : ''}` || '-';
+    const actions = `${hasPermission('can_cash_edit') ? `<button class="mini" onclick="openCashEdit('${x.id}')">Düzenle</button>` : ''} ${hasPermission('can_cash_delete') ? `<button class="mini" onclick="deleteCash('${x.id}')">Sil</button>` : ''}` || '-';
 
     tr.innerHTML = `<td>${x.tx_date}</td><td>${x.type}</td><td>${money(x.amount)}</td><td>${paymentName}</td><td>${departmentName}</td><td>${linked}</td><td>${x.description || ''}</td><td>${actions}</td>`;
     tbody.appendChild(tr);
   });
-
-  const mobile = byId('cashMobileList');
-  if(mobile){
-    mobile.innerHTML = '';
-    if(!state.cash.length){
-      mobile.innerHTML = '<div class="mobile-item muted">Henüz kasa hareketi yok.</div>';
-      return;
-    }
-
-    state.cash.forEach(x => {
-      const supplierName = x.supplier_id ? (state.suppliers.find(s => s.id === x.supplier_id)?.name || '-') : null;
-      const employeeName = x.employee_id ? (state.employees.find(e => e.id === x.employee_id)?.full_name || '-') : null;
-      const paymentName = x.payment_method_id ? (state.paymentMethods.find(pm => pm.id === x.payment_method_id)?.name || '-') : '-';
-      const departmentName = x.department_id ? (state.departments.find(dep => dep.id === x.department_id)?.name || '-') : '-';
-      const linked = supplierName || employeeName || '-';
-      const actions = `${hasPermission('can_cash_edit') ? `<button onclick="openCashEdit('${x.id}')">Düzenle</button>` : ''} ${hasPermission('can_cash_delete') ? `<button onclick="deleteCash('${x.id}')">Sil</button>` : ''}` || '';
-
-      const div = document.createElement('div');
-      div.className = 'mobile-item';
-      div.innerHTML = `
-        <div class="mobile-item-title">${money(x.amount)} <span class="muted">• ${x.type}</span></div>
-        <div class="mobile-kv"><span class="k">Tarih</span><span>${x.tx_date}</span></div>
-        <div class="mobile-kv"><span class="k">Ödeme</span><span>${paymentName}</span></div>
-        <div class="mobile-kv"><span class="k">Departman</span><span>${departmentName}</span></div>
-        <div class="mobile-kv"><span class="k">Bağlantı</span><span>${linked}</span></div>
-        <div class="mobile-kv"><span class="k">Açıklama</span><span>${x.description || '-'}</span></div>
-        <div class="mobile-actions">${actions}</div>
-      `;
-      mobile.appendChild(div);
-    });
-  }
 }
 
 function attendanceOptions(selected){
