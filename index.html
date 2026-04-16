@@ -164,6 +164,39 @@
       }
     }
 
+  
+    /* Personel ve panel mobil düzeltmeleri */
+    .panel-summary-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+    @media (max-width:760px){
+      .panel-summary-grid{
+        grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        gap:6px;
+      }
+      .panel-summary-grid .summary{
+        font-size:18px;
+      }
+      .panel-summary-grid .muted{
+        font-size:11px;
+      }
+    }
+    @media (max-width:520px){
+      #tab-employees .desktop-table{
+        display:table!important;
+      }
+      #tab-employees .desktop-table-wrap{
+        display:block!important;
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+      }
+      #tab-employees table{
+        min-width:760px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -233,11 +266,10 @@
         </div>
       </div>
 
-      <div class="grid grid-4">
+      <div class="panel-summary-grid">
         <div><div class="muted">Giren</div><div id="sumCashIn" class="summary ok">₺0</div></div>
         <div><div class="muted">Çıkan</div><div id="sumCashOut" class="summary danger">₺0</div></div>
         <div><div class="muted">Net</div><div id="sumCashNet" class="summary">₺0</div></div>
-        <div><div class="muted">Aktif Personel</div><div id="sumEmployees" class="summary">0</div></div>
       </div>
 
       <div class="card" style="background:#faf8f5;margin-top:14px">
@@ -1209,7 +1241,8 @@ function renderSummary(){
   byId('sumCashNet').textContent = money(net);
   byId('sumCashNet').classList.toggle('ok', net >= 0);
   byId('sumCashNet').classList.toggle('danger', net < 0);
-  byId('sumEmployees').textContent = state.employees.length;
+  if(byId('sumEmployees')) byId('sumEmployees').textContent = state.employees.length;
+  if(byId('employeeActiveCount')) byId('employeeActiveCount').textContent = state.employees.length;
 
   const supplierTotal = state.supplierBalances.reduce((a,x)=>a+Number(x.balance||0),0);
   if(byId('supplierTotalBalance')) byId('supplierTotalBalance').textContent = money(supplierTotal);
@@ -1532,6 +1565,7 @@ function monthlySummaryForEmployee(employeeId){
 }
 
 function renderEmployees(){
+  if(byId('employeeActiveCount')) byId('employeeActiveCount').textContent = state.employees.length;
   const tbody = byId('employeeTable');
   tbody.innerHTML = '';
 
