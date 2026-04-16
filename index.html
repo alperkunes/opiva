@@ -43,6 +43,127 @@
     .modal{background:#fff;border-radius:18px;max-width:900px;width:100%;max-height:85vh;overflow:auto;border:1px solid var(--line);padding:16px}
     .modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
     .modal-title{font-size:20px;font-weight:800}
+  
+    /* =========================
+       MOBİL UYUM İYİLEŞTİRMELERİ
+    ========================= */
+    .mobile-card-list{display:none}
+    .desktop-table{display:table}
+    .action-row{display:flex;gap:6px;flex-wrap:wrap}
+    .tabbar-wrap{position:sticky;top:0;z-index:20;background:var(--bg);padding-top:6px}
+    .form-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    @media (max-width: 760px){
+      body{font-size:14px}
+      .wrap{padding:10px;max-width:100%}
+      .card{border-radius:14px;padding:12px;margin-bottom:10px}
+      .brand{font-size:21px}
+      .top{align-items:flex-start}
+      .top .row{align-self:flex-end}
+      .grid,.grid-2,.grid-3,.grid-4{grid-template-columns:1fr!important;gap:9px}
+      input,select,textarea,button{font-size:16px}
+      button{padding:10px 12px;min-height:42px}
+      .mini{font-size:13px;padding:8px 10px;min-height:36px}
+      .section-title{font-size:20px;margin-bottom:8px}
+      .summary{font-size:22px}
+      .tabs{
+        display:flex;
+        overflow-x:auto;
+        flex-wrap:nowrap;
+        gap:6px;
+        padding-bottom:4px;
+        -webkit-overflow-scrolling:touch;
+      }
+      .tabs .tab{
+        flex:0 0 auto;
+        white-space:nowrap;
+      }
+      .row,.row-between{
+        flex-wrap:wrap;
+        align-items:stretch;
+      }
+      .row-between > *{width:100%}
+      .badge{display:inline-flex;width:auto}
+      table{
+        min-width:720px;
+      }
+      .scroll-x{
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+        width:100%;
+      }
+      .desktop-table-wrap{
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+      }
+      .modal-backdrop{
+        align-items:flex-end;
+        padding:0;
+      }
+      .modal{
+        width:100%;
+        max-height:92vh;
+        border-radius:18px 18px 0 0;
+        padding:14px;
+      }
+      .modal-head{
+        position:sticky;
+        top:0;
+        background:#fff;
+        z-index:5;
+        padding-bottom:10px;
+      }
+      #cashDesc,
+      #editCashDesc{
+        grid-column:auto!important;
+      }
+      .login{margin:24px auto}
+      .muted{font-size:12px}
+    }
+
+    @media (max-width: 520px){
+      .mobile-card-list{display:block}
+      .desktop-table{display:none}
+      .desktop-table-wrap{display:none}
+      .mobile-item{
+        background:#fff;
+        border:1px solid var(--line);
+        border-radius:14px;
+        padding:12px;
+        margin-bottom:10px;
+      }
+      .mobile-item-title{
+        font-weight:800;
+        font-size:15px;
+        margin-bottom:6px;
+      }
+      .mobile-kv{
+        display:grid;
+        grid-template-columns:110px 1fr;
+        gap:4px 8px;
+        font-size:13px;
+        margin:4px 0;
+      }
+      .mobile-kv .k{color:var(--muted)}
+      .mobile-actions{
+        display:flex;
+        gap:6px;
+        flex-wrap:wrap;
+        margin-top:10px;
+      }
+      .mobile-actions button{
+        flex:1 1 auto;
+        min-width:92px;
+      }
+      .panel-payment-mobile{
+        display:grid;
+        gap:8px;
+      }
+      .panel-payment-mobile .mobile-item{
+        margin-bottom:0;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -126,7 +247,7 @@
             <div class="muted">Seçilen tarihte Nakit, banka ve kart kırılımı.</div>
           </div>
         </div>
-        <table style="margin-top:12px">
+        <table class="desktop-table" style="margin-top:12px">
           <thead>
             <tr>
               <th>Kasa / Ödeme Yöntemi</th>
@@ -137,6 +258,7 @@
           </thead>
           <tbody id="paymentSummaryTable"></tbody>
         </table>
+        <div id="paymentSummaryMobile" class="mobile-card-list panel-payment-mobile"></div>
       </div>
     </div>
 
@@ -153,10 +275,11 @@
         <div class="muted">Toplam Tedarikçi Bakiyesi</div>
         <div id="supplierTotalBalance" class="summary">₺0</div>
       </div>
-      <table>
+      <table class="desktop-table">
         <thead><tr><th>Ad</th><th>Açılış</th><th>Bakiye</th><th>İşlem</th></tr></thead>
         <tbody id="supplierTable"></tbody>
       </table>
+      <div id="supplierMobileList" class="mobile-card-list"></div>
     </div>
 
     <div id="tab-cash" class="card hidden">
@@ -178,10 +301,11 @@
       </div>
       <button class="btn-primary" onclick="createCash()">Kasa Kaydı Ekle</button>
       <div id="cashMsg" class="muted" style="margin-top:10px"></div>
-      <table style="margin-top:12px">
+      <table class="desktop-table" style="margin-top:12px">
         <thead><tr><th>Tarih</th><th>Tip</th><th>Tutar</th><th>Ödeme Yöntemi</th><th>Departman</th><th>Bağlantı</th><th>Açıklama</th><th>İşlem</th></tr></thead>
         <tbody id="cashTable"></tbody>
       </table>
+      <div id="cashMobileList" class="mobile-card-list"></div>
     </div>
 
     <div id="tab-employees" class="card hidden">
@@ -227,7 +351,7 @@
           <button class="btn-primary" onclick="saveAttendanceForDate()">Puantajı Kaydet</button>
         </div>
 
-        <table>
+        <table class="desktop-table">
           <thead>
             <tr>
               <th>Personel</th>
@@ -257,7 +381,7 @@
             <div class="muted" style="font-size:11px">İçinde bulunulan ayda bugün dahil bugüne kadar sayılır.</div>
           </div>
         </div>
-        <div class="scroll-x"><table style="margin-top:10px">
+        <div class="scroll-x"><table class="desktop-table" style="margin-top:10px">
           <thead>
             <tr>
               <th>Ad</th>
@@ -296,7 +420,7 @@
           <input id="paymentMethodName" placeholder="Örn: İş Bankası" />
           <button class="btn-primary" onclick="createPaymentMethod()">Ödeme Yöntemi Ekle</button>
         </div>
-        <table style="margin-top:12px">
+        <table class="desktop-table" style="margin-top:12px">
           <thead><tr><th>Ad</th><th>Durum</th><th>İşlem</th></tr></thead>
           <tbody id="paymentMethodTable"></tbody>
         </table>
@@ -313,7 +437,7 @@
           <input id="departmentName" placeholder="Örn: Bahçe, Teras, Mutfak" />
           <button class="btn-primary" onclick="createDepartment()">Departman Ekle</button>
         </div>
-        <table style="margin-top:12px">
+        <table class="desktop-table" style="margin-top:12px">
           <thead><tr><th>Ad</th><th>Durum</th><th>İşlem</th></tr></thead>
           <tbody id="departmentTable"></tbody>
         </table>
@@ -347,7 +471,7 @@
       <div class="card" style="background:#fff">
         <b>Mevcut Kullanıcılar</b>
         <div class="scroll-x">
-          <table style="margin-top:10px">
+          <table class="desktop-table" style="margin-top:10px">
             <thead>
               <tr>
                 <th>Kullanıcı</th>
@@ -491,7 +615,7 @@
         </div>
 
         <div class="scroll-x">
-          <table>
+          <table class="desktop-table">
             <thead>
               <tr>
                 <th>Tarih</th>
@@ -513,7 +637,7 @@
           </div>
           <div id="employeeEditPaymentTotal" class="badge">₺0</div>
         </div>
-        <table style="margin-top:10px">
+        <table class="desktop-table" style="margin-top:10px">
           <thead>
             <tr>
               <th>Tarih</th>
@@ -539,7 +663,7 @@
         </div>
         <button onclick="closeMovements()">Kapat</button>
       </div>
-      <table>
+      <table class="desktop-table">
         <thead>
           <tr>
             <th>Tarih</th>
@@ -1121,6 +1245,30 @@ function renderSummary(){
       tbody.innerHTML = '<tr><td colspan="4" class="muted">Bu tarihte kasa hareketi yok.</td></tr>';
     }
   }
+
+  const mobileBox = byId('paymentSummaryMobile');
+  if(mobileBox){
+    mobileBox.innerHTML = '';
+    const activeMethods = state.paymentMethods.filter(x => x.is_active);
+    activeMethods.forEach(pm => {
+      const rows = dayCash.filter(x => x.payment_method_id === pm.id);
+      const methodIn = rows.filter(x => cashSign(x.type) > 0).reduce((a,x)=>a+Number(x.amount||0),0);
+      const methodOut = rows.filter(x => cashSign(x.type) < 0).reduce((a,x)=>a+Number(x.amount||0),0);
+      const methodNet = methodIn - methodOut;
+      const div = document.createElement('div');
+      div.className = 'mobile-item';
+      div.innerHTML = `
+        <div class="mobile-item-title">${pm.name}</div>
+        <div class="mobile-kv"><span class="k">Giren</span><span class="ok">${money(methodIn)}</span></div>
+        <div class="mobile-kv"><span class="k">Çıkan</span><span class="danger">${money(methodOut)}</span></div>
+        <div class="mobile-kv"><span class="k">Net</span><span><b>${money(methodNet)}</b></span></div>
+      `;
+      mobileBox.appendChild(div);
+    });
+    if(!mobileBox.children.length){
+      mobileBox.innerHTML = '<div class="mobile-item muted">Bu tarihte kasa hareketi yok.</div>';
+    }
+  }
 }
 
 function renderSuppliers(){
@@ -1138,6 +1286,29 @@ function renderSuppliers(){
       </td>`;
     tbody.appendChild(tr);
   });
+
+  const mobile = byId('supplierMobileList');
+  if(mobile){
+    mobile.innerHTML = '';
+    state.supplierBalances.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'mobile-item';
+      div.innerHTML = `
+        <div class="mobile-item-title">${s.name}</div>
+        <div class="mobile-kv"><span class="k">Açılış</span><span>${money(s.opening_balance)}</span></div>
+        <div class="mobile-kv"><span class="k">Bakiye</span><span><b>${money(s.balance)}</b></span></div>
+        <div class="mobile-actions">
+          <button onclick="showSupplierMovements('${s.id}')">Hareketler</button>
+          <button onclick="addMovementPrompt('${s.id}','alis')">Alış</button>
+          <button onclick="addMovementPrompt('${s.id}','iade')">İade</button>
+          <button onclick="editSupplierPrompt('${s.id}')">Düzenle</button>
+          <button onclick="deleteSupplier('${s.id}')">Sil</button>
+        </div>
+      `;
+      mobile.appendChild(div);
+    });
+    if(!state.supplierBalances.length) mobile.innerHTML = '<div class="mobile-item muted">Tedarikçi yok.</div>';
+  }
 
   renderCashLinkSelects();
 }
@@ -1223,6 +1394,37 @@ function renderCash(){
     tr.innerHTML = `<td>${x.tx_date}</td><td>${x.type}</td><td>${money(x.amount)}</td><td>${paymentName}</td><td>${departmentName}</td><td>${linked}</td><td>${x.description || ''}</td><td>${actions}</td>`;
     tbody.appendChild(tr);
   });
+
+  const mobile = byId('cashMobileList');
+  if(mobile){
+    mobile.innerHTML = '';
+    if(!state.cash.length){
+      mobile.innerHTML = '<div class="mobile-item muted">Henüz kasa hareketi yok.</div>';
+      return;
+    }
+
+    state.cash.forEach(x => {
+      const supplierName = x.supplier_id ? (state.suppliers.find(s => s.id === x.supplier_id)?.name || '-') : null;
+      const employeeName = x.employee_id ? (state.employees.find(e => e.id === x.employee_id)?.full_name || '-') : null;
+      const paymentName = x.payment_method_id ? (state.paymentMethods.find(pm => pm.id === x.payment_method_id)?.name || '-') : '-';
+      const departmentName = x.department_id ? (state.departments.find(dep => dep.id === x.department_id)?.name || '-') : '-';
+      const linked = supplierName || employeeName || '-';
+      const actions = `${hasPermission('can_cash_edit') ? `<button onclick="openCashEdit('${x.id}')">Düzenle</button>` : ''} ${hasPermission('can_cash_delete') ? `<button onclick="deleteCash('${x.id}')">Sil</button>` : ''}` || '';
+
+      const div = document.createElement('div');
+      div.className = 'mobile-item';
+      div.innerHTML = `
+        <div class="mobile-item-title">${money(x.amount)} <span class="muted">• ${x.type}</span></div>
+        <div class="mobile-kv"><span class="k">Tarih</span><span>${x.tx_date}</span></div>
+        <div class="mobile-kv"><span class="k">Ödeme</span><span>${paymentName}</span></div>
+        <div class="mobile-kv"><span class="k">Departman</span><span>${departmentName}</span></div>
+        <div class="mobile-kv"><span class="k">Bağlantı</span><span>${linked}</span></div>
+        <div class="mobile-kv"><span class="k">Açıklama</span><span>${x.description || '-'}</span></div>
+        <div class="mobile-actions">${actions}</div>
+      `;
+      mobile.appendChild(div);
+    });
+  }
 }
 
 function attendanceOptions(selected){
