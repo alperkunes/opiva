@@ -360,6 +360,31 @@
       }
     }
 
+    /* PUANTAJ TABLOSU MOBİL */
+    .att-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .att-desktop-table{width:100%;border-collapse:collapse}
+    .att-desktop-table thead th{padding:10px 12px;background:var(--bg);border-bottom:2px solid var(--line);text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+    .att-desktop-table td{padding:10px 12px;border-bottom:1px solid var(--line2);font-size:14px;vertical-align:middle}
+    .att-desktop-table tbody tr:hover td{background:var(--acc-light)}
+    .att-mobile-list{display:none}
+    @media (max-width:640px){
+      .att-desktop-table{display:none}
+      .att-mobile-list{display:block}
+      .att-mobile-row{
+        display:grid;grid-template-columns:1fr auto;
+        grid-template-areas:"name status" "note note";
+        gap:8px 10px;padding:12px;
+        background:var(--card);border:1px solid var(--line);
+        border-radius:12px;margin-bottom:8px;align-items:center;
+      }
+      .att-name{grid-area:name;font-weight:700;font-size:14px}
+      .att-name span{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:1px}
+      .att-status{grid-area:status}
+      .att-status select{padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;background:#fff;font-weight:600;width:auto;min-width:120px}
+      .att-note{grid-area:note}
+      .att-note input{padding:7px 10px;font-size:13px;border-radius:8px;border:1px solid var(--line2);background:var(--bg);color:var(--muted)}
+      .att-note input:focus{background:#fff;border-color:var(--acc2);color:var(--text)}
+    }
   </style>
 </head>
 <body>
@@ -556,17 +581,21 @@
           <button class="btn-primary" onclick="saveAttendanceForDate()">Puantajı Kaydet</button>
         </div>
 
-        <table class="desktop-table">
-          <thead>
-            <tr>
-              <th>Personel</th>
-              <th>Görev</th>
-              <th>Durum</th>
-              <th>Not</th>
-            </tr>
-          </thead>
-          <tbody id="attendanceTable"></tbody>
-        </table>
+        <div class="att-table-wrap scroll-x">
+          <table class="att-desktop-table">
+            <thead>
+              <tr>
+                <th>Personel</th>
+                <th>Görev</th>
+                <th>Durum</th>
+                <th>Not</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTable"></tbody>
+          </table>
+        </div>
+        <!-- Mobil kart versiyonu -->
+        <div id="attendanceMobileList" class="att-mobile-list"></div>
 
         <div class="card" style="margin-top:12px;background:#fff">
           <b>Seçili Tarih Özeti</b>
@@ -1844,17 +1873,22 @@ function renderEmployees(){
 
 function renderAttendanceTable(){
   const tbody = byId('attendanceTable');
+  const mobileList = byId('attendanceMobileList');
   if(!tbody) return;
   tbody.innerHTML = '';
+  if(mobileList) mobileList.innerHTML = '';
 
   if(!state.employees.length){
     tbody.innerHTML = '<tr><td colspan="4" class="muted">Aktif personel yok.</td></tr>';
+    if(mobileList) mobileList.innerHTML = '<div class="muted" style="padding:12px">Aktif personel yok.</div>';
     renderAttendanceSummary();
     return;
   }
 
   state.employees.forEach(e => {
     const rec = state.attendanceRecords.find(r => r.employee_id === e.id) || {};
+
+    // MASAÜSTÜ SATIR
     const tr = document.createElement('tr');
     tr.dataset.employeeId = e.id;
     tr.innerHTML = `
@@ -1864,6 +1898,19 @@ function renderAttendanceTable(){
       <td><input data-field="note" value="${rec.note || ''}" placeholder="Not" /></td>
     `;
     tbody.appendChild(tr);
+
+    // MOBİL KART
+    if(mobileList){
+      const div = document.createElement('div');
+      div.className = 'att-mobile-row';
+      div.dataset.employeeId = e.id;
+      div.innerHTML = `
+        <div class="att-name">${e.full_name}<span>${e.role_title || ''}</span></div>
+        <div class="att-status"><select data-field="status">${attendanceOptions(rec.status || '')}</select></div>
+        <div class="att-note"><input data-field="note" value="${rec.note || ''}" placeholder="Not (opsiyonel)" /></div>
+      `;
+      mobileList.appendChild(div);
+    }
   });
 
   renderAttendanceSummary();
@@ -1940,17 +1987,25 @@ async function loadMonthlyAttendance(){
 }
 
 
+// Hem masaüstü tablo hem mobil kartları seç
+function attAllRows(){
+  var rows = [];
+  document.querySelectorAll('#attendanceTable tr[data-employee-id]').forEach(tr => rows.push(tr));
+  document.querySelectorAll('#attendanceMobileList .att-mobile-row[data-employee-id]').forEach(d => rows.push(d));
+  return rows;
+}
+
 function setAllAttendance(status){
-  document.querySelectorAll('#attendanceTable tr[data-employee-id]').forEach(tr => {
-    const select = tr.querySelector('select[data-field="status"]');
+  attAllRows().forEach(el => {
+    const select = el.querySelector('select[data-field="status"]');
     if(select) select.value = status;
   });
 }
 
 function clearAllAttendance(){
-  document.querySelectorAll('#attendanceTable tr[data-employee-id]').forEach(tr => {
-    const select = tr.querySelector('select[data-field="status"]');
-    const note = tr.querySelector('input[data-field="note"]');
+  attAllRows().forEach(el => {
+    const select = el.querySelector('select[data-field="status"]');
+    const note = el.querySelector('input[data-field="note"]');
     if(select) select.value = '';
     if(note) note.value = '';
   });
@@ -1961,23 +2016,23 @@ async function saveAttendanceForDate(){
     if(!state.activeBusinessId) throw new Error('Aktif işletme yok.');
     const selectedDate = byId('attendanceDate')?.value || today();
 
-    const rows = [];
-    document.querySelectorAll('#attendanceTable tr[data-employee-id]').forEach(tr => {
-      const employee_id = tr.dataset.employeeId;
-      const status = tr.querySelector('select[data-field="status"]')?.value || '';
-      const note = tr.querySelector('input[data-field="note"]')?.value || null;
-
-      if(status){
-        rows.push({
-          business_id: state.activeBusinessId,
-          employee_id,
-          attendance_date: selectedDate,
-          status,
-          note,
-          created_by: state.session.user.id
-        });
-      }
+    // Değerleri önce masaüstü tablodan, yoksa mobil karttan oku
+    const employeeValues = {};
+    attAllRows().forEach(el => {
+      const eid = el.dataset.employeeId;
+      const status = el.querySelector('select[data-field="status"]')?.value || '';
+      const note = el.querySelector('input[data-field="note"]')?.value || null;
+      if(status) employeeValues[eid] = { status, note };
     });
+
+    const rows = Object.entries(employeeValues).map(([employee_id, vals]) => ({
+      business_id: state.activeBusinessId,
+      employee_id,
+      attendance_date: selectedDate,
+      status: vals.status,
+      note: vals.note,
+      created_by: state.session.user.id
+    }));
 
     if(!rows.length) throw new Error('Kaydedilecek puantaj seçilmedi.');
 
