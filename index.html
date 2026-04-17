@@ -457,6 +457,14 @@
       }
     }
 
+  
+    /* Stok paneli */
+    @media(max-width:520px){
+      #tab-stock .desktop-table{display:table!important}
+      #tab-stock .desktop-table-wrap{display:block!important;overflow-x:auto;-webkit-overflow-scrolling:touch}
+      #tab-stock table{min-width:900px}
+    }
+
   </style>
 </head>
 <body>
@@ -513,6 +521,7 @@
         <button class="tab" data-tab="suppliers" onclick="showTab('suppliers', this)">Tedarikçi</button>
         <button class="tab" data-tab="cash" onclick="showTab('cash', this)">Kasa</button>
         <button class="tab" data-tab="employees" onclick="showTab('employees', this)">Personel</button>
+        <button class="tab" data-tab="stock" onclick="showTab('stock', this)">Stok</button>
         <button class="tab" data-tab="settings" onclick="showTab('settings', this)">Ayarlar</button>
         <button class="tab" data-tab="users" onclick="showTab('users', this)">Kullanıcılar</button>
       </div>
@@ -736,6 +745,76 @@
           </thead>
           <tbody id="employeeTable"></tbody>
         </table></div>
+      </div>
+    </div>
+
+
+    <div id="tab-stock" class="card hidden">
+      <div class="row-between">
+        <div>
+          <div class="section-title">📦 Stok Paneli</div>
+          <div class="muted">Bar, mutfak ve sarf ürünleri için stok kartı, giriş, çıkış, fire, ikram ve sayım takibi.</div>
+        </div>
+      </div>
+
+      <div class="panel-summary-grid" style="margin-bottom:14px">
+        <div class="summary-card"><div class="muted">Ürün</div><div id="stockItemCount" class="summary">0</div></div>
+        <div class="summary-card danger"><div class="muted">Kritik</div><div id="stockCriticalCount" class="summary danger">0</div></div>
+        <div class="summary-card ok"><div class="muted">Normal</div><div id="stockNormalCount" class="summary ok">0</div></div>
+      </div>
+
+      <div class="card-inner" style="margin-bottom:12px">
+        <b>Stok Kartı Ekle</b>
+        <div class="grid grid-4" style="margin-top:12px">
+          <input id="stockName" placeholder="Ürün adı" />
+          <input id="stockCategory" placeholder="Kategori: Rakı, Şarap, Meze..." />
+          <input id="stockUnit" placeholder="Birim: adet, kg, lt, cl, şişe" value="adet" />
+          <input id="stockBottleSize" type="number" step="0.01" placeholder="Şişe CL opsiyonel" />
+          <input id="stockMin" type="number" step="0.01" placeholder="Minimum stok" />
+          <button class="btn-primary" onclick="createStockItem()">+ Stok Kartı Ekle</button>
+        </div>
+      </div>
+
+      <div class="card-inner" style="margin-bottom:12px">
+        <b>Stok Hareketi Ekle</b>
+        <div class="grid grid-4" style="margin-top:12px">
+          <select id="stockMoveItem"></select>
+          <select id="stockMoveType">
+            <option value="giris">Giriş</option>
+            <option value="cikis">Çıkış</option>
+            <option value="sayim">Sayım</option>
+            <option value="fire">Fire</option>
+            <option value="ikram">İkram</option>
+          </select>
+          <input id="stockMoveQty" type="number" step="0.01" placeholder="Miktar" />
+          <input id="stockMoveDate" type="date" />
+          <select id="stockMoveSupplier"></select>
+          <input id="stockMoveAmount" type="number" step="0.01" placeholder="Alış tutarı opsiyonel" />
+          <input id="stockMoveNote" placeholder="Not" />
+          <button class="btn-primary" onclick="createStockMovement()">+ Hareket Ekle</button>
+          <div class="muted" style="grid-column:1/-1">Not: Hareket tipi <b>Sayım</b> seçildiğinde, girilen rakam mevcut stoktan farklıysa sistem kayıt öncesi uyarı verir.</div>
+        </div>
+      </div>
+
+      <div class="card-inner">
+        <div class="row-between" style="margin-bottom:10px">
+          <div><b>Güncel Stok Listesi</b><div class="muted">Sayım varsa son sayımdan itibaren hesaplanır.</div></div>
+        </div>
+        <div class="grid grid-4" style="margin-bottom:12px">
+          <input id="stockFilterText" placeholder="Ürün / kategori ara" oninput="renderStock()" />
+          <select id="stockFilterStatus" onchange="renderStock()">
+            <option value="">Tüm Stoklar</option>
+            <option value="critical">Kritik Stok</option>
+            <option value="normal">Normal Stok</option>
+          </select>
+          <button onclick="resetStockFilters()">Filtreleri Temizle</button>
+        </div>
+        <div class="desktop-table-wrap">
+          <table class="desktop-table" style="margin-top:12px">
+            <thead><tr><th>Ürün</th><th>Kategori</th><th>Birim</th><th>Min</th><th>Giriş</th><th>Çıkış</th><th>Son Sayım</th><th>Mevcut</th><th>Durum</th><th>İşlem</th></tr></thead>
+            <tbody id="stockTable"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -1076,6 +1155,8 @@ let state = {
   users: [],
   userPermissions: [],
   employeePrivate: [],
+  stockItems: [],
+  stockMovements: [],
   departments: [],
   attendanceRecords: [],
   monthlyAttendance: [],
@@ -1096,10 +1177,10 @@ function isAdmin(){
 }
 
 const roleDefaults = {
-  admin:    { can_panel:true, can_cash:true, can_suppliers:true, can_employees:true, can_settings:true, can_users:true, can_cash_edit:true, can_cash_delete:true, can_supplier_edit:true, can_employee_private:true },
-  yonetici: { can_panel:true, can_cash:true, can_suppliers:true, can_employees:true, can_settings:true, can_users:false, can_cash_edit:true, can_cash_delete:true, can_supplier_edit:true, can_employee_private:false },
-  kasa:     { can_panel:true, can_cash:true, can_suppliers:false, can_employees:false, can_settings:false, can_users:false, can_cash_edit:false, can_cash_delete:false, can_supplier_edit:false, can_employee_private:false },
-  muhasebe: { can_panel:true, can_cash:true, can_suppliers:true, can_employees:false, can_settings:false, can_users:false, can_cash_edit:false, can_cash_delete:false, can_supplier_edit:true, can_employee_private:false }
+  admin:    { can_panel:true, can_cash:true, can_suppliers:true, can_employees:true, can_stock:true, can_settings:true, can_users:true, can_cash_edit:true, can_cash_delete:true, can_supplier_edit:true, can_employee_private:true, can_stock:true },
+  yonetici: { can_panel:true, can_cash:true, can_suppliers:true, can_employees:true, can_stock:true, can_settings:true, can_users:false, can_cash_edit:true, can_cash_delete:true, can_supplier_edit:true, can_employee_private:false, can_stock:false },
+  kasa:     { can_panel:true, can_cash:true, can_suppliers:false, can_employees:false, can_stock:false, can_settings:false, can_users:false, can_cash_edit:false, can_cash_delete:false, can_supplier_edit:false, can_employee_private:false, can_stock:false },
+  muhasebe: { can_panel:true, can_cash:true, can_suppliers:true, can_employees:false, can_stock:false, can_settings:false, can_users:false, can_cash_edit:false, can_cash_delete:false, can_supplier_edit:true, can_employee_private:false, can_stock:false }
 };
 
 function hasPermission(key){
@@ -1116,6 +1197,7 @@ function tabPermission(tabName){
     employees: 'can_employees',
     settings: 'can_settings',
     users: 'can_users',
+    stock: 'can_stock',
   };
   return hasPermission(map[tabName]);
 }
@@ -1192,7 +1274,7 @@ function showTab(name, el){
   if(!tabPermission(name)) return alert('Bu ekran için yetkin yok.');
   document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
   if(el) el.classList.add('active');
-  ['panel','suppliers','cash','employees','settings','users'].forEach(function(t){ byId('tab-'+t).classList.add('hidden'); });
+  ['panel','suppliers','cash','employees','stock','settings','users'].forEach(function(t){ byId('tab-'+t).classList.add('hidden'); });
   byId('tab-'+name).classList.remove('hidden');
   if(name==='panel') renderSummary();
 }
@@ -1305,11 +1387,25 @@ async function loadCore(){
     await loadUsersForAdmin();
   }
 
+
+  if(hasPermission('can_stock')){
+    const [{data: stockItems, error: stockItemsError},{data: stockMovements, error: stockMovementsError}] = await Promise.all([
+      sb.from('stock_items').select('*').eq('business_id', bid).order('name'),
+      sb.from('stock_movements').select('*').eq('business_id', bid).order('movement_date', {ascending:false}).limit(1000)
+    ]);
+    if(!stockItemsError) state.stockItems = stockItems || [];
+    if(!stockMovementsError) state.stockMovements = stockMovements || [];
+  } else {
+    state.stockItems = [];
+    state.stockMovements = [];
+  }
+
   renderSuppliers();
   renderEmployees();
   renderCashLinkSelects();
   renderSettings();
   renderUsers();
+  renderStock();
   renderCash();
   renderSummary();
 }
@@ -1417,6 +1513,212 @@ function renderSettings(){
 }
 
 
+
+
+
+function stockQuantity(itemId){
+  let running = 0;
+  state.stockMovements
+    .filter(m => m.item_id === itemId)
+    .sort((a,b) => String(a.movement_date).localeCompare(String(b.movement_date)) || String(a.created_at).localeCompare(String(b.created_at)))
+    .forEach(m => {
+      const q = Number(m.quantity || 0);
+      if(m.type === 'sayim') running = q;
+      else if(m.type === 'giris') running += q;
+      else if(['cikis','fire','ikram'].includes(m.type)) running -= q;
+    });
+  return running;
+}
+
+function stockTotals(itemId){
+  const rows = state.stockMovements.filter(m => m.item_id === itemId);
+  return {
+    giris: rows.filter(m => m.type === 'giris').reduce((a,m)=>a+Number(m.quantity||0),0),
+    cikis: rows.filter(m => ['cikis','fire','ikram'].includes(m.type)).reduce((a,m)=>a+Number(m.quantity||0),0),
+    sayim: rows.filter(m => m.type === 'sayim').sort((a,b)=>String(b.movement_date).localeCompare(String(a.movement_date)))[0]?.quantity ?? ''
+  };
+}
+
+function renderStock(){
+  const tbody = byId('stockTable');
+  if(!tbody) return;
+
+  const itemSelect = byId('stockMoveItem');
+  if(itemSelect){
+    const current = itemSelect.value || '';
+    itemSelect.innerHTML = '<option value="">Ürün seç</option>';
+    state.stockItems.filter(i => i.is_active).forEach(i => {
+      const opt = document.createElement('option');
+      opt.value = i.id;
+      opt.textContent = i.name;
+      itemSelect.appendChild(opt);
+    });
+    itemSelect.value = current;
+  }
+
+  const supplierSelect = byId('stockMoveSupplier');
+  if(supplierSelect){
+    const current = supplierSelect.value || '';
+    supplierSelect.innerHTML = '<option value="">Tedarikçi seç opsiyonel</option>';
+    state.suppliers.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      supplierSelect.appendChild(opt);
+    });
+    supplierSelect.value = current;
+  }
+
+  if(byId('stockMoveDate') && !byId('stockMoveDate').value) byId('stockMoveDate').value = today();
+
+  const q = (byId('stockFilterText')?.value || '').trim().toLocaleLowerCase('tr-TR');
+  const statusFilter = byId('stockFilterStatus')?.value || '';
+
+  const criticalAll = state.stockItems.filter(item => stockQuantity(item.id) <= Number(item.min_stock || 0)).length;
+  if(byId('stockItemCount')) byId('stockItemCount').textContent = state.stockItems.length;
+  if(byId('stockCriticalCount')) byId('stockCriticalCount').textContent = criticalAll;
+  if(byId('stockNormalCount')) byId('stockNormalCount').textContent = state.stockItems.length - criticalAll;
+
+  const rows = state.stockItems.filter(item => {
+    const qty = stockQuantity(item.id);
+    const critical = qty <= Number(item.min_stock || 0);
+    const blob = `${item.name || ''} ${item.category || ''}`.toLocaleLowerCase('tr-TR');
+    if(q && !blob.includes(q)) return false;
+    if(statusFilter === 'critical' && !critical) return false;
+    if(statusFilter === 'normal' && critical) return false;
+    return true;
+  });
+
+  tbody.innerHTML = '';
+  if(!rows.length){
+    tbody.innerHTML = '<tr><td colspan="10" class="muted">Stok kaydı yok veya filtreye uygun ürün bulunamadı.</td></tr>';
+    return;
+  }
+
+  rows.forEach(item => {
+    const qty = stockQuantity(item.id);
+    const totals = stockTotals(item.id);
+    const critical = qty <= Number(item.min_stock || 0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${item.name}</b></td>
+      <td>${item.category || ''}</td>
+      <td>${item.unit || ''}${item.bottle_size_cl ? ` / ${item.bottle_size_cl}cl` : ''}</td>
+      <td>${item.min_stock || 0}</td>
+      <td>${totals.giris}</td>
+      <td>${totals.cikis}</td>
+      <td>${totals.sayim}</td>
+      <td><b>${qty}</b></td>
+      <td><span class="badge ${critical ? 'badge-danger' : 'badge-ok'}">${critical ? 'Kritik' : 'Normal'}</span></td>
+      <td><button class="mini" onclick="editStockItem('${item.id}')">Düzenle</button> <button class="mini btn-danger" onclick="deleteStockItem('${item.id}')">Sil</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function resetStockFilters(){
+  if(byId('stockFilterText')) byId('stockFilterText').value = '';
+  if(byId('stockFilterStatus')) byId('stockFilterStatus').value = '';
+  renderStock();
+}
+
+async function createStockItem(){
+  const name = byId('stockName').value.trim();
+  if(!name) return alert('Ürün adı gerekli.');
+  const { error } = await sb.from('stock_items').upsert({
+    business_id: state.activeBusinessId,
+    name,
+    category: byId('stockCategory').value.trim() || null,
+    unit: byId('stockUnit').value.trim() || 'adet',
+    bottle_size_cl: byId('stockBottleSize').value ? Number(byId('stockBottleSize').value) : null,
+    min_stock: Number(byId('stockMin').value || 0),
+    is_active: true,
+    created_by: state.session.user.id
+  }, { onConflict:'business_id,name' });
+  if(error) return alert(error.message);
+  ['stockName','stockCategory','stockBottleSize','stockMin'].forEach(id => { if(byId(id)) byId(id).value = ''; });
+  if(byId('stockUnit')) byId('stockUnit').value = 'adet';
+  await loadCore();
+}
+
+async function createStockMovement(){
+  const item_id = byId('stockMoveItem').value;
+  const type = byId('stockMoveType').value;
+  const quantity = Number(byId('stockMoveQty').value || 0);
+
+  if(!item_id) return alert('Ürün seç.');
+  if(quantity < 0 || byId('stockMoveQty').value === '') return alert('Geçerli miktar gir.');
+
+  const item = state.stockItems.find(i => i.id === item_id);
+  const currentBeforeCount = stockQuantity(item_id);
+
+  if(type === 'sayim'){
+    const difference = quantity - currentBeforeCount;
+
+    if(difference !== 0){
+      const direction = difference > 0 ? 'fazla' : 'eksik';
+      const ok = confirm(
+        `${item?.name || 'Seçili ürün'} için sayım farkı var.\n\n` +
+        `Sistemdeki mevcut stok: ${currentBeforeCount}\n` +
+        `Girdiğin sayım: ${quantity}\n` +
+        `Fark: ${Math.abs(difference)} ${direction}\n\n` +
+        `Bu sayımı kaydetmek istiyor musun?`
+      );
+
+      if(!ok) return;
+    }
+  }
+
+  const { error } = await sb.from('stock_movements').insert({
+    business_id: state.activeBusinessId,
+    item_id,
+    type,
+    quantity,
+    movement_date: byId('stockMoveDate').value || today(),
+    supplier_id: byId('stockMoveSupplier').value || null,
+    amount: byId('stockMoveAmount').value ? Number(byId('stockMoveAmount').value) : null,
+    note: byId('stockMoveNote').value.trim() || null,
+    created_by: state.session.user.id
+  });
+
+  if(error) return alert(error.message);
+
+  if(type === 'sayim'){
+    const difference = quantity - currentBeforeCount;
+    if(difference !== 0){
+      alert(`Sayım kaydedildi. Stok farkı: ${difference > 0 ? '+' : ''}${difference}`);
+    }
+  }
+
+  ['stockMoveQty','stockMoveAmount','stockMoveNote'].forEach(id => { if(byId(id)) byId(id).value = ''; });
+  await loadCore();
+}
+
+async function editStockItem(id){
+  const item = state.stockItems.find(i => i.id === id);
+  if(!item) return alert('Ürün bulunamadı.');
+  const name = prompt('Ürün adı', item.name || '');
+  if(name === null) return;
+  const category = prompt('Kategori', item.category || '');
+  if(category === null) return;
+  const unit = prompt('Birim', item.unit || 'adet');
+  if(unit === null) return;
+  const minRaw = prompt('Minimum stok', String(item.min_stock || 0));
+  if(minRaw === null) return;
+  const { error } = await sb.from('stock_items')
+    .update({ name: name.trim(), category: category.trim() || null, unit: unit.trim() || 'adet', min_stock: Number(minRaw || 0) })
+    .eq('id', id)
+    .eq('business_id', state.activeBusinessId);
+  if(error) return alert(error.message);
+  await loadCore();
+}
+
+async function deleteStockItem(id){
+  if(!confirm('Bu stok kartını ve hareketlerini silmek istiyor musun?')) return;
+  const { error } = await sb.from('stock_items').delete().eq('id', id).eq('business_id', state.activeBusinessId);
+  if(error) return alert(error.message);
+  await loadCore();
+}
 
 
 async function loadUsersForAdmin(){
