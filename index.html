@@ -435,6 +435,28 @@
       #tab-cash .mobile-card-list{display:none!important}
     }
 
+  
+    /* Mobil personel düzenleme puantaj tablosu düzeltmesi */
+    @media (max-width:520px){
+      #employeeEditModal .scroll-x{
+        display:block!important;
+        overflow-x:auto!important;
+        -webkit-overflow-scrolling:touch;
+      }
+      #employeeEditModal table.desktop-table{
+        display:table!important;
+        min-width:640px;
+      }
+      #employeeEditModal table.desktop-table th,
+      #employeeEditModal table.desktop-table td{
+        white-space:nowrap;
+        font-size:13px;
+      }
+      #employeeEditModal .att-select{
+        min-width:150px;
+      }
+    }
+
   </style>
 </head>
 <body>
